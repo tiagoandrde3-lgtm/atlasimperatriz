@@ -1,0 +1,111 @@
+{
+  "categorias": [
+    {
+      "id": "hidrico",
+      "nome": "Hídrico",
+      "descricao": "Rios, drenagem e nascentes",
+      "camadas": [
+        {
+          "id": "rede-drenagem",
+          "nome": "Rede de drenagem",
+          "tipo": "linha",
+          "cor": "#2c6e91",
+          "arquivo": "data/rede-drenagem.geojson",
+          "descricao": "Cursos d'água da bacia urbana e periurbana de Imperatriz."
+        },
+        {
+          "id": "nascentes",
+          "nome": "Nascentes",
+          "tipo": "ponto",
+          "cor": "#4aa3c7",
+          "arquivo": "data/nascentes.geojson",
+          "descricao": "Pontos de surgência identificados em campo."
+        }
+      ]
+    },
+    {
+      "id": "relevo",
+      "nome": "Relevo",
+      "descricao": "Altimetria e formas",
+      "camadas": [
+        {
+          "id": "hipsometria",
+          "nome": "Hipsometria",
+          "tipo": "area",
+          "cor": "#2f5d4e",
+          "opacidade": 0.35,
+          "arquivo": "data/hipsometria.geojson",
+          "descricao": "Faixas de altitude em metros."
+        }
+      ]
+    },
+    {
+      "id": "geologia",
+      "nome": "Geologia",
+      "descricao": "Unidades litoestratigráficas",
+      "camadas": [
+        {
+          "id": "unidades-geologicas",
+          "nome": "Unidades geológicas",
+          "tipo": "area",
+          "cor": "#c9a24a",
+          "arquivo": "data/geologia.geojson",
+          "descricao": "Unidades da Bacia do Parnaíba e coberturas cenozoicas."
+        }
+      ]
+    },
+    {
+      "id": "solos",
+      "nome": "Solos",
+      "descricao": "Classes pedológicas",
+      "camadas": [
+        {
+          "id": "classes-solo",
+          "nome": "Classes de solo",
+          "tipo": "area",
+          "cor": "#b5573a",
+          "arquivo": "data/solos.geojson",
+          "descricao": "Classes de solo predominantes no município."
+        }
+      ]
+    },
+    {
+      "id": "uso",
+      "nome": "Uso do solo",
+      "descricao": "Cobertura e ocupação",
+      "camadas": [
+        {
+          "id": "uso-cobertura",
+          "nome": "Cobertura e uso",
+          "tipo": "area",
+          "cor": "#6b4f8a",
+          "arquivo": "data/uso.geojson",
+          "descricao": "Classes de cobertura, dados MapBiomas."
+        }
+      ]
+    },
+    {
+      "id": "pontos",
+      "nome": "Pontos de interesse",
+      "descricao": "Campo e patrimônio",
+      "camadas": [
+        {
+          "id": "afloramentos",
+          "nome": "Afloramentos",
+          "tipo": "ponto",
+          "cor": "#a23b3b",
+          "arquivo": "data/afloramentos.geojson",
+          "descricao": "Afloramentos rochosos visitados em campo."
+        },
+        {
+          "id": "vocorocas",
+          "nome": "Voçorocas",
+          "tipo": "ponto",
+          "cor": "#d9822b",
+          "arquivo": "data/vocorocas.geojson",
+          "descricao": "Feições erosivas lineares mapeadas."
+        }
+      ]
+    }
+  ]
+}
