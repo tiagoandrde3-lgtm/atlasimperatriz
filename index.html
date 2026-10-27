@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atlas Geomorfológico de Imperatriz</title>
+  <meta name="description" content="Atlas digital interativo sobre o relevo, a hidrografia e a geologia de Imperatriz (MA)." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    :root {
+      --papel: #f6f1e7;
+      --papel-2: #ece4d3;
+      --tinta: #1f2a24;
+      --tinta-suave: #5b6b62;
+      --verde: #2f5d4e;
+      --verde-claro: #d6e4dc;
+      --terracota: #b5573a;
+      --ocre: #c9a24a;
+      --azul: #2c6e91;
+      --roxo: #6b4f8a;
+      --cinza: #9aa39d;
+      --borda: rgba(31, 42, 36, 0.12);
+      --sombra: 0 10px 30px -12px rgba(31, 42, 36, 0.25);
+      --raio: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: "Inter", system-ui, sans-serif;
+      color: var(--tinta);
+      background: var(--papel);
+      overflow: hidden;
+    }
+
+    /* ===== Layout geral ===== */
+    .app {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      grid-template-rows: auto 1fr;
+      height: 100%;
+      gap: 0;
+    }
+
+    header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      background: var(--papel);
+      border-bottom: 1px solid var(--borda);
+      z-index: 5;
+    }
+
+    .marca { display: flex; align-items: center; gap: 14px; }
+
+    .selo {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: var(--verde);
+      display: grid; place-items: center;
+      box-shadow: var(--sombra);
+    }
+    .selo svg { width: 24px; height: 24px; }
+
+    .titulo h1 {
+      font-family: "Fraunces", Georgia, serif;
+      font-weight: 800;
+      font-size: 1.35rem;
+      letter-spacing: -0.01em;
+    }
+    .titulo p {
+      font-size: 0.78rem;
+      color: var(--tinta-suave);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .acoes { display: flex; gap: 8px; }
+
+    .btn {
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--borda);
+      background: #fff;
+      color: var(--tinta);
+      cursor: pointer;
+      transition: transform .15s ease, background .2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); background: var(--verde-claro); }
+    .btn.ativo { background: var(--verde); color: #fff; border-color: var(--verde); }
+
+    /* ===== Painel lateral ===== */
+    aside {
+      background: var(--papel-2);
+      border-right: 1px solid var(--borda);
+      overflow-y: auto;
+      padding: 20px 18px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .secao-titulo {
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--tinta-suave);
+      font-weight: 600;
+      margin: 4px 4px 0;
+    }
+
+    .categoria {
+      background: #fff;
+      border: 1px solid var(--borda);
+      border-radius: var(--raio);
+      overflow: hidden;
+      transition: box-shadow .2s ease, transform .2s ease;
+    }
+    .categoria:hover { box-shadow: var(--sombra); }
+
+    .categoria-cab {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 14px;
+      background: none;
+      border: none;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .cat-icone {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      transition: transform .3s ease;
+    }
+    .cat-icone svg { width: 22px; height: 22px; }
+
+    .cat-texto { flex: 1; }
+    .cat-texto strong { display: block; font-size: 0.95rem; font-weight: 600; }
+    .cat-texto span { font-size: 0.75rem; color: var(--tinta-suave); }
+
+    .interruptor {
+      width: 40px; height: 22px;
+      border-radius: 999px;
+      background: var(--cinza);
+      position: relative;
+      transition: background .25s ease;
+      flex-shrink: 0;
+    }
+    .interruptor::after {
+      content: "";
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform .25s ease;
+    }
+    .categoria.ligada .interruptor { background: var(--verde); }
+    .categoria.ligada .interruptor::after { transform: translateX(18px); }
+    .categoria.ligada .cat-icone { transform: rotate(-6deg) scale(1.05); }
+
+    .camadas {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows .3s ease;
+    }
+    .categoria.aberta .camadas { grid-template-rows: 1fr; }
+    .camadas > div { overflow: hidden; }
+
+    .camada {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px 9px 16px;
+      border-top: 1px dashed var(--borda);
+      cursor: pointer;
+      font-size: 0.86rem;
+      transition: background .15s ease;
+    }
+    .camada:hover { background: var(--papel); }
+    .camada.indisponivel { opacity: .45; cursor: not-allowed; }
+    .camada .nome { flex: 1; }
+    .camada .etiqueta {
+      font-size: 0.66rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--papel-2);
+      color: var(--tinta-suave);
+    }
+    .camada input { accent-color: var(--verde); }
+
+    /* Símbolos de feição */
+    .simbolo {
+      width: 18px; height: 18px;
+      flex-shrink: 0;
+      display: inline-block;
+    }
+    .simbolo.linha { height: 4px; width: 22px; border-radius: 2px; }
+    .simbolo.area { border-radius: 4px; }
+    .simbolo.ponto { border-radius: 50%; width: 12px; height: 12px; }
+    .simbolo.raster {
+      border-radius: 4px;
+      background: linear-gradient(135deg, #d6e4dc, #c9a24a, #b5573a) !important;
+    }
+
+    /* Legenda */
+    .legenda {
+      background: #fff;
+      border: 1px solid var(--borda);
+      border-radius: var(--raio);
+      padding: 14px;
+    }
+    .legenda h3 {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+    }
+    .legenda ul { list-style: none; display: grid; gap: 8px; }
+    .legenda li { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--tinta-suave); }
+    .vazio { font-size: 0.82rem; color: var(--tinta-suave); font-style: italic; }
+
+    /* ===== Área do mapa ===== */
+    main {
+      position: relative;
+      min-height: 0;
+    }
+    #mapa {
+      width: 100%;
+      height: 100%;
+      background: var(--papel-2);
+    }
+
+    /* Moldura de atlas */
+    main::after {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border: 1px solid rgba(31, 42, 36, 0.18);
+      border-radius: 18px;
+      pointer-events: none;
+      z-index: 500;
+    }
+
+    /* Título flutuante no mapa */
+    .carimbo {
+      position: absolute;
+      top: 22px; left: 56px;
+      z-index: 600;
+      background: rgba(246, 241, 231, 0.92);
+      backdrop-filter: blur(6px);
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--borda);
+      box-shadow: var(--sombra);
+      pointer-events: none;
+    }
+    .carimbo strong {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1rem;
+      display: block;
+    }
+    .carimbo span { font-size: 0.72rem; color: var(--tinta-suave); letter-spacing: .06em; text-transform: uppercase; }
+
+    /* Rodapé do mapa */
+    .rodape-mapa {
+      position: absolute;
+      bottom: 22px; right: 22px;
+      z-index: 600;
+      background: rgba(255,255,255,0.92);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.72rem;
+      color: var(--tinta-suave);
+      border: 1px solid var(--borda);
+    }
+
+    /* Contador de camadas ativas */
+    .contador {
+      position: absolute;
+      top: 22px; right: 22px;
+      z-index: 600;
+      background: var(--verde);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      box-shadow: var(--sombra);
+    }
+
+    /* Pop-up do Leaflet com estilo de atlas */
+    .leaflet-popup-content-wrapper {
+      background: var(--papel);
+      border-radius: 14px;
+      box-shadow: var(--sombra);
+      font-family: "Inter", sans-serif;
+    }
+    .leaflet-popup-content { margin: 14px 16px; font-size: 0.85rem; }
+    .leaflet-popup-content h4 {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    .leaflet-control-zoom a {
+      border-radius: 10px !important;
+      color: var(--verde) !important;
+    }
+
+    /* ===== Responsivo ===== */
+    @media (max-width: 860px) {
+      html, body { overflow: auto; }
+      .app { grid-template-columns: 1fr; grid-template-rows: auto auto 70vh; height: auto; }
+      aside { border-right: none; border-bottom: 1px solid var(--borda); max-height: 50vh; }
+      .carimbo { left: 16px; top: 16px; }
+      .contador { top: auto; bottom: 16px; right: 16px; }
+      .rodape-mapa { display: none; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header>
+      <div class="marca">
+        <div class="selo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#f6f1e7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 17l5-6 4 4 3-3 6 7"/>
+            <path d="M3 21h18"/>
+          </svg>
+        </div>
+        <div class="titulo">
+          <h1>Atlas de Imperatriz</h1>
+          <p>Geomorfologia · Maranhão</p>
+        </div>
+      </div>
+      <div class="acoes">
+        <button class="btn" id="btn-todas">Ligar tudo</button>
+        <button class="btn" id="btn-limpar">Limpar</button>
+        <button class="btn" id="btn-base">Base escura</button>
+      </div>
+    </header>
+
+    <aside>
+      <p class="secao-titulo">Camadas temáticas</p>
+      <div id="lista-categorias"></div>
+
+      <p class="secao-titulo">Legenda</p>
+      <div class="legenda">
+        <h3>Símbolos ativos</h3>
+        <ul id="legenda-lista"><li class="vazio">Nenhuma camada ativa.</li></ul>
+      </div>
+    </aside>
+
+    <main>
+      <div id="mapa"></div>
+
+      <div class="carimbo">
+        <strong>Imperatriz · MA</strong>
+        <span>Relevo e drenagem</span>
+      </div>
+
+      <div class="contador" id="contador">0 camadas ativas</div>
+
+      <div class="rodape-mapa">Sistema de referência: WGS 84 (EPSG:4326)</div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    /* =====================================================
+       CONFIGURAÇÃO
+       ===================================================== */
+    const CENTRO_IMPERATRIZ = [-5.5263, -47.4917];
+    const ZOOM_INICIAL = 12;
+
+    const BASES = {
+      claro: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      escuro: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    };
+
+    /* Ícones SVG por categoria */
+    const ICONES = {
+      hidrico: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>`,
+      relevo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M2 20l6-10 4 6 3-4 7 8z"/></svg>`,
+      geologia: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8l4-4h8l4 4v8l-4 4H8l-4-4z"/><path d="M4 12h16"/></svg>`,
+      solos: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19h16"/><path d="M6 19v-4h12v4"/><path d="M8 15V9h8v6"/></svg>`,
+      uso: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>`,
+      pontos: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`
+    };
+
+    /* Paleta por categoria (cor de fundo do ícone e cor da feição) */
+    const CORES_CATEGORIA = {
+      hidrico:  { fundo: "#dbeaf2", texto: "#2c6e91" },
+      relevo:   { fundo: "#e5ece2", texto: "#2f5d4e" },
+      geologia: { fundo: "#f3e7d0", texto: "#9a6b1f" },
+      solos:    { fundo: "#f2dfd6", texto: "#b5573a" },
+      uso:      { fundo: "#e9e3f0", texto: "#6b4f8a" },
+      pontos:   { fundo: "#f6dcdc", texto: "#a23b3b" }
+    };
+
+    /* =====================================================
+       MAPA
+       ===================================================== */
+    const mapa = L.map("mapa", {
+      center: CENTRO_IMPERATRIZ,
+      zoom: ZOOM_INICIAL,
+      zoomControl: false
+    });
+
+    L.control.zoom({ position: "topright" }).addTo(mapa);
+    L.control.scale({ imperial: false, position: "bottomleft" }).addTo(mapa);
+
+    let camadaBase = L.tileLayer(BASES.claro, {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      subdomains: "abcd",
+      maxZoom: 19
+    }).addTo(mapa);
+
+    let baseEscura = false;
+    document.getElementById("btn-base").addEventListener("click", (e) => {
+      baseEscura = !baseEscura;
+      mapa.removeLayer(camadaBase);
+      camadaBase = L.tileLayer(baseEscura ? BASES.escuro : BASES.claro, {
+        subdomains: "abcd",
+        maxZoom: 19
+      }).addTo(mapa);
+      camadaBase.bringToBack();
+      e.currentTarget.classList.toggle("ativo", baseEscura);
+    });
+
+    /* =====================================================
+       ESTADO
+       ===================================================== */
+    const estado = {
+      categorias: [],
+      camadas: new Map()
+    };
+
+    /* =====================================================
+       CARREGAMENTO DO JSON
+       ===================================================== */
+    async function iniciar() {
+      try {
+        const resposta = await fetch("data/camadas.json");
+        if (!resposta.ok) throw new Error("camadas.json não encontrado");
+        const config = await resposta.json();
+        estado.categorias = config.categorias;
+        montarPainel();
+      } catch (erro) {
+        console.error(erro);
+        document.getElementById("lista-categorias").innerHTML =
+          `<p class="vazio">Não foi possível ler data/camadas.json.</p>`;
+      }
+    }
+
+    /* =====================================================
+       PAINEL
+       ===================================================== */
+    function montarPainel() {
+      const lista = document.getElementById("lista-categorias");
+      lista.innerHTML = "";
+
+      estado.categorias.forEach((cat) => {
+        const cor = CORES_CATEGORIA[cat.id] || { fundo: "#eee", texto: "#333" };
+
+        const bloco = document.createElement("section");
+        bloco.className = "categoria";
+        bloco.dataset.id = cat.id;
+        bloco.innerHTML = `
+          <button class="categoria-cab" aria-expanded="false">
+            <span class="cat-icone" style="background:${cor.fundo};color:${cor.texto}">
+              ${ICONES[cat.id] || ""}
+            </span>
+            <span class="cat-texto">
+              <strong>${cat.nome}</strong>
+              <span>${cat.descricao}</span>
+            </span>
+            <span class="interruptor" title="Ligar/desligar categoria"></span>
+          </button>
+          <div class="camadas"><div></div></div>
+        `;
+
+        const cab = bloco.querySelector(".categoria-cab");
+        const corpo = bloco.querySelector(".camadas > div");
+
+        cab.addEventListener("click", (e) => {
+          const alvo = e.target;
+          if (alvo.classList.contains("interruptor")) {
+            alternarCategoria(cat.id);
+          } else {
+            const aberta = bloco.classList.toggle("aberta");
+            cab.setAttribute("aria-expanded", aberta);
+          }
+        });
+
+        cat.camadas.forEach((meta) => {
+          const linha = document.createElement("label");
+          linha.className = "camada";
+          linha.dataset.id = meta.id;
+          linha.innerHTML = `
+            <input type="checkbox" />
+            <span class="simbolo ${meta.tipo}" style="background:${meta.cor}"></span>
+            <span class="nome">${meta.nome}</span>
+            <span class="etiqueta">${meta.tipo}</span>
+          `;
+
+          const input = linha.querySelector("input");
+          input.addEventListener("change", () => alternarCamada(meta.id, input.checked));
+
+          corpo.appendChild(linha);
+          estado.camadas.set(meta.id, {
+            meta,
+            categoria: cat.id,
+            grupo: L.layerGroup(),
+            carregada: false,
+            ativa: false,
+            elemento: linha,
+            input
+          });
+        });
+
+        lista.appendChild(bloco);
+      });
+    }
+
+    /* =====================================================
+       LIGAR / DESLIGAR
+       ===================================================== */
+    async function alternarCamada(id, ligar) {
+      const reg = estado.camadas.get(id);
+      if (!reg) return;
+
+      if (ligar) {
+        if (!reg.carregada) {
+          const ok = await carregarDados(reg);
+          if (!ok) {
+            reg.input.checked = false;
+            return;
+          }
+        }
+        reg.grupo.addTo(mapa);
+        reg.ativa = true;
+      } else {
+        mapa.removeLayer(reg.grupo);
+        reg.ativa = false;
+      }
+
+      atualizarCategoriaVisual(reg.categoria);
+      atualizarInterface();
+    }
+
+    function alternarCategoria(idCat) {
+      const cat = estado.categorias.find((c) => c.id === idCat);
+      const todasAtivas = cat.camadas.every((m) => estado.camadas.get(m.id).ativa);
+      cat.camadas.forEach((m) => {
+        const reg = estado.camadas.get(m.id);
+        reg.input.checked = !todasAtivas;
+        alternarCamada(m.id, !todasAtivas);
+      });
+    }
+
+    async function carregarDados(reg) {
+      const { meta } = reg;
+
+      if (!meta.arquivo) {
+        reg.carregada = true;
+        return true;
+      }
+
+      try {
+        const r = await fetch(meta.arquivo);
+        if (!r.ok) throw new Error(r.status);
+        const geojson = await r.json();
+
+        const camada = L.geoJSON(geojson, {
+          style: () => estilo(meta),
+          pointToLayer: (feicao, latlng) =>
+            L.circleMarker(latlng, {
+              radius: 6,
+              color: "#fff",
+              weight: 2,
+              fillColor: meta.cor,
+              fillOpacity: 0.95
+            }),
+          onEachFeature: (feicao, layer) => {
+            const props = feicao.properties || {};
+            const titulo = props.nome || props.name || meta.nome;
+            const detalhe = props.descricao || props.description || meta.descricao || "";
+            layer.bindPopup(`<h4>${titulo}</h4><div>${detalhe}</div>`);
+          }
+        });
+
+        reg.grupo.addLayer(camada);
+        reg.carregada = true;
+        return true;
+      } catch (erro) {
+        console.warn(`Sem dados para "${meta.nome}" (${meta.arquivo}).`);
+        reg.elemento.classList.add("indisponivel");
+        reg.elemento.title = "Dados ainda não adicionados";
+        return false;
+      }
+    }
+
+    function estilo(meta) {
+      if (meta.tipo === "linha") {
+        return { color: meta.cor, weight: 2.2, opacity: 0.9 };
+      }
+      if (meta.tipo === "area") {
+        return {
+          color: meta.cor,
+          weight: 1.2,
+          fillColor: meta.cor,
+          fillOpacity: meta.opacidade ?? 0.35
+        };
+      }
+      return { color: meta.cor, weight: 1.5, fillColor: meta.cor, fillOpacity: 0.6 };
+    }
+
+    /* =====================================================
+       INTERFACE
+       ===================================================== */
+    function atualizarCategoriaVisual(idCat) {
+      const bloco = document.querySelector(`.categoria[data-id="${idCat}"]`);
+      const cat = estado.categorias.find((c) => c.id === idCat);
+      const algumaAtiva = cat.camadas.some((m) => estado.camadas.get(m.id).ativa);
+      bloco.classList.toggle("ligada", algumaAtiva);
+    }
+
+    function atualizarInterface() {
+      const ativas = [...estado.camadas.values()].filter((r) => r.ativa);
+      document.getElementById("contador").textContent =
+        `${ativas.length} ${ativas.length === 1 ? "camada ativa" : "camadas ativas"}`;
+
+      const legenda = document.getElementById("legenda-lista");
+      legenda.innerHTML = ativas.length
+        ? ativas.map((r) => `
+            <li>
+              <span class="simbolo ${r.meta.tipo}" style="background:${r.meta.cor}"></span>
+              ${r.meta.nome}
+            </li>`).join("")
+        : `<li class="vazio">Nenhuma camada ativa.</li>`;
+    }
+
+    document.getElementById("btn-todas").addEventListener("click", () => {
+      estado.categorias.forEach((c) => {
+        c.camadas.forEach((m) => {
+          const reg = estado.camadas.get(m.id);
+          reg.input.checked = true;
+          alternarCamada(m.id, true);
+        });
+      });
+    });
+
+    document.getElementById("btn-limpar").addEventListener("click", () => {
+      estado.camadas.forEach((reg) => {
+        reg.input.checked = false;
+        alternarCamada(reg.meta.id, false);
+      });
+    });
+
+    iniciar();
+  </script>
+</body>
+</html>
