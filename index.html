@@ -4,29 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Atlas Geomorfológico de Imperatriz</title>
+  <meta name="theme-color" content="#050806" />
   <meta name="description" content="Atlas digital interativo sobre o relevo, a hidrografia e a geologia de Imperatriz (MA)." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <style>
     :root {
-      --papel: #f6f1e7;
-      --papel-2: #ece4d3;
-      --tinta: #1f2a24;
-      --tinta-suave: #5b6b62;
-      --verde: #2f5d4e;
-      --verde-claro: #d6e4dc;
-      --terracota: #b5573a;
-      --ocre: #c9a24a;
-      --azul: #2c6e91;
-      --roxo: #6b4f8a;
-      --cinza: #9aa39d;
-      --borda: rgba(31, 42, 36, 0.12);
-      --sombra: 0 10px 30px -12px rgba(31, 42, 36, 0.25);
+      --bg: #050806;
+      --bg-2: #0a100c;
+      --painel: #0d1410;
+      --painel-2: #111a14;
+      --elev: #16211a;
+      --texto: #e4f1e9;
+      --texto-suave: #7f9a8a;
+      --verde: #2dff8f;
+      --verde-2: #19c76a;
+      --verde-escuro: #0f5a35;
+      --verde-fumo: rgba(45, 255, 143, 0.08);
+      --verde-borda: rgba(45, 255, 143, 0.16);
+      --verde-glow: 0 0 22px rgba(45, 255, 143, 0.35);
+      --cinza: #2a362f;
+      --borda: rgba(255, 255, 255, 0.07);
+      --sombra: 0 18px 40px -18px rgba(0, 0, 0, 0.85);
       --raio: 16px;
+      --larg-painel: 372px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -34,355 +39,502 @@
     html, body {
       height: 100%;
       font-family: "Inter", system-ui, sans-serif;
-      color: var(--tinta);
-      background: var(--papel);
+      color: var(--texto);
+      background: var(--bg);
       overflow: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* ===== Layout geral ===== */
+    button { font: inherit; color: inherit; }
+    :focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
+    ::selection { background: var(--verde); color: #021008; }
+
+    /* ===== Layout ===== */
     .app {
       display: grid;
-      grid-template-columns: 340px 1fr;
+      grid-template-columns: var(--larg-painel) 1fr;
       grid-template-rows: auto 1fr;
       height: 100%;
-      gap: 0;
+      transition: grid-template-columns .35s ease;
     }
+    .app.recolhido { grid-template-columns: 0 1fr; }
+    .app.recolhido aside { padding: 0; border: 0; overflow: hidden; }
 
     header {
       grid-column: 1 / -1;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 24px;
-      background: var(--papel);
-      border-bottom: 1px solid var(--borda);
-      z-index: 5;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 12px 22px;
+      background: linear-gradient(180deg, #0b120e, var(--bg));
+      border-bottom: 1px solid var(--verde-borda);
+      position: relative; z-index: 5;
+    }
+    header::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--verde), transparent);
+      opacity: .55;
     }
 
-    .marca { display: flex; align-items: center; gap: 14px; }
-
+    .marca { display: flex; align-items: center; gap: 14px; min-width: 0; }
     .selo {
-      width: 44px; height: 44px;
-      border-radius: 12px;
-      background: var(--verde);
-      display: grid; place-items: center;
-      box-shadow: var(--sombra);
+      width: 44px; height: 44px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--verde), var(--verde-2));
+      display: grid; place-items: center; flex-shrink: 0;
+      box-shadow: var(--verde-glow);
     }
     .selo svg { width: 24px; height: 24px; }
-
     .titulo h1 {
-      font-family: "Fraunces", Georgia, serif;
-      font-weight: 800;
-      font-size: 1.35rem;
-      letter-spacing: -0.01em;
+      font-family: "Fraunces", Georgia, serif; font-weight: 800; font-size: 1.3rem;
+      letter-spacing: -0.01em; white-space: nowrap;
     }
     .titulo p {
-      font-size: 0.78rem;
-      color: var(--tinta-suave);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-top: 2px;
+      font-size: 0.7rem; color: var(--verde); letter-spacing: 0.18em;
+      text-transform: uppercase; margin-top: 3px; opacity: .85;
     }
 
-    .acoes { display: flex; gap: 8px; }
+    .acoes { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 
     .btn {
-      font: inherit;
-      font-size: 0.85rem;
-      font-weight: 500;
-      padding: 8px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--borda);
-      background: #fff;
-      color: var(--tinta);
-      cursor: pointer;
-      transition: transform .15s ease, background .2s ease;
+      font-size: 0.8rem; font-weight: 500; padding: 8px 14px; border-radius: 999px;
+      border: 1px solid var(--borda); background: var(--painel-2); color: var(--texto);
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+      transition: transform .15s ease, background .2s, border-color .2s, color .2s, box-shadow .2s;
     }
-    .btn:hover { transform: translateY(-1px); background: var(--verde-claro); }
-    .btn.ativo { background: var(--verde); color: #fff; border-color: var(--verde); }
+    .btn:hover { transform: translateY(-1px); border-color: var(--verde-borda); background: var(--elev); color: var(--verde); }
+    .btn.ativo { background: var(--verde); color: #03150a; border-color: var(--verde); box-shadow: var(--verde-glow); font-weight: 600; }
+    .btn svg { width: 15px; height: 15px; }
+
+    .segmentos {
+      display: inline-flex; background: var(--painel); border: 1px solid var(--borda);
+      border-radius: 999px; padding: 3px;
+    }
+    .segmentos button {
+      border: 0; background: transparent; cursor: pointer; font-size: 0.76rem; font-weight: 500;
+      padding: 6px 12px; border-radius: 999px; color: var(--texto-suave);
+      transition: background .2s, color .2s, box-shadow .2s;
+    }
+    .segmentos button.ativo { background: var(--verde); color: #03150a; box-shadow: var(--verde-glow); font-weight: 600; }
+    .segmentos button:not(.ativo):hover { background: var(--verde-fumo); color: var(--verde); }
 
     /* ===== Painel lateral ===== */
     aside {
-      background: var(--papel-2);
-      border-right: 1px solid var(--borda);
-      overflow-y: auto;
-      padding: 20px 18px 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+      background:
+        radial-gradient(420px 260px at 0% 0%, rgba(45,255,143,.07), transparent 70%),
+        linear-gradient(rgba(45,255,143,.025) 1px, transparent 1px) 0 0 / 100% 28px,
+        var(--painel);
+      border-right: 1px solid var(--verde-borda);
+      overflow-y: auto; padding: 18px 16px 28px;
+      display: flex; flex-direction: column; gap: 14px;
+      scrollbar-width: thin; scrollbar-color: var(--cinza) transparent;
     }
+
+    .busca { position: relative; }
+    .busca svg {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      width: 16px; height: 16px; color: var(--verde); pointer-events: none;
+    }
+    .busca input {
+      width: 100%; font: inherit; font-size: 0.86rem; padding: 10px 40px 10px 36px;
+      border-radius: 12px; border: 1px solid var(--borda);
+      background: var(--bg); color: var(--texto);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .busca input::placeholder { color: var(--texto-suave); }
+    .busca input:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px rgba(45,255,143,.15); }
+    .busca kbd, .modal-caixa kbd {
+      font-family: "JetBrains Mono", monospace; font-size: 0.7rem; padding: 1px 6px; border-radius: 5px;
+      border: 1px solid var(--verde-borda); background: var(--verde-fumo); color: var(--verde);
+    }
+    .busca kbd { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
+
+    .resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .resumo div {
+      background: var(--painel-2); border: 1px solid var(--borda); border-radius: 12px;
+      padding: 10px 8px; text-align: center; position: relative; overflow: hidden;
+    }
+    .resumo div::before {
+      content: ""; position: absolute; left: 20%; right: 20%; top: 0; height: 2px;
+      background: var(--verde); box-shadow: 0 0 12px var(--verde); opacity: .7; border-radius: 2px;
+    }
+    .resumo strong {
+      display: block; font-family: "JetBrains Mono", monospace; font-weight: 500;
+      font-size: 1.2rem; line-height: 1.15; color: var(--verde);
+    }
+    .resumo span { font-size: 0.62rem; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .12em; }
 
     .secao-titulo {
-      font-size: 0.72rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--tinta-suave);
-      font-weight: 600;
-      margin: 4px 4px 0;
+      font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--texto-suave); font-weight: 600; margin: 4px 4px 0;
+      display: flex; justify-content: space-between; align-items: center;
     }
+    .secao-titulo > span:first-child::before { content: "// "; color: var(--verde); }
 
     .categoria {
-      background: #fff;
-      border: 1px solid var(--borda);
-      border-radius: var(--raio);
-      overflow: hidden;
-      transition: box-shadow .2s ease, transform .2s ease;
+      background: var(--painel-2); border: 1px solid var(--borda);
+      border-radius: var(--raio); overflow: hidden;
+      transition: box-shadow .25s ease, border-color .25s ease, background .25s;
     }
-    .categoria:hover { box-shadow: var(--sombra); }
+    .categoria:hover { border-color: var(--verde-borda); }
+    .categoria.ligada {
+      border-color: color-mix(in srgb, var(--cat-cor) 50%, transparent);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--cat-cor) 10%, transparent), 0 10px 30px -16px color-mix(in srgb, var(--cat-cor) 55%, transparent);
+    }
+    .categoria.oculta { display: none; }
 
     .categoria-cab {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 14px;
-      background: none;
-      border: none;
-      font: inherit;
-      color: inherit;
-      cursor: pointer;
-      text-align: left;
+      display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 14px;
+      width: 100%; background: none; border: none; cursor: pointer; text-align: left;
     }
-
     .cat-icone {
-      width: 40px; height: 40px;
-      border-radius: 12px;
-      display: grid; place-items: center;
-      flex-shrink: 0;
-      transition: transform .3s ease;
+      width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+      flex-shrink: 0; border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+      transition: transform .3s ease, box-shadow .3s;
     }
-    .cat-icone svg { width: 22px; height: 22px; }
-
-    .cat-texto { flex: 1; }
-    .cat-texto strong { display: block; font-size: 0.95rem; font-weight: 600; }
-    .cat-texto span { font-size: 0.75rem; color: var(--tinta-suave); }
+    .cat-icone svg { width: 21px; height: 21px; }
+    .categoria.ligada .cat-icone { transform: rotate(-6deg) scale(1.06); box-shadow: 0 0 18px -2px currentColor; }
+    .cat-texto { flex: 1; min-width: 0; }
+    .cat-texto strong { display: block; font-size: 0.92rem; font-weight: 600; }
+    .cat-texto span { font-size: 0.73rem; color: var(--texto-suave); }
+    .seta { width: 16px; height: 16px; color: var(--texto-suave); transition: transform .25s ease; flex-shrink: 0; }
+    .categoria.aberta .seta { transform: rotate(90deg); color: var(--verde); }
 
     .interruptor {
-      width: 40px; height: 22px;
-      border-radius: 999px;
-      background: var(--cinza);
-      position: relative;
-      transition: background .25s ease;
-      flex-shrink: 0;
+      width: 40px; height: 22px; border-radius: 999px; background: var(--cinza);
+      position: relative; border: 0; cursor: pointer; transition: background .25s, box-shadow .25s; flex-shrink: 0;
     }
     .interruptor::after {
-      content: "";
-      position: absolute;
-      top: 3px; left: 3px;
-      width: 16px; height: 16px;
-      border-radius: 50%;
-      background: #fff;
-      transition: transform .25s ease;
+      content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+      border-radius: 50%; background: #8da197; transition: transform .25s ease, background .25s;
     }
-    .categoria.ligada .interruptor { background: var(--verde); }
-    .categoria.ligada .interruptor::after { transform: translateX(18px); }
-    .categoria.ligada .cat-icone { transform: rotate(-6deg) scale(1.05); }
+    .categoria.ligada .interruptor { background: var(--verde-escuro); box-shadow: 0 0 14px rgba(45,255,143,.35); }
+    .categoria.ligada .interruptor::after { transform: translateX(18px); background: var(--verde); }
 
-    .camadas {
-      display: grid;
-      grid-template-rows: 0fr;
-      transition: grid-template-rows .3s ease;
-    }
+    .camadas { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s ease; }
     .categoria.aberta .camadas { grid-template-rows: 1fr; }
     .camadas > div { overflow: hidden; }
 
-    .camada {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 9px 14px 9px 16px;
-      border-top: 1px dashed var(--borda);
-      cursor: pointer;
-      font-size: 0.86rem;
-      transition: background .15s ease;
-    }
-    .camada:hover { background: var(--papel); }
-    .camada.indisponivel { opacity: .45; cursor: not-allowed; }
-    .camada .nome { flex: 1; }
-    .camada .etiqueta {
-      font-size: 0.66rem;
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: var(--papel-2);
-      color: var(--tinta-suave);
-    }
-    .camada input { accent-color: var(--verde); }
+    .camada { border-top: 1px solid var(--borda); padding: 9px 14px 9px 16px; transition: background .2s; }
+    .camada:hover { background: rgba(45,255,143,.03); }
+    .camada.oculta { display: none; }
+    .camada-linha { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+    .camada-linha label { display: flex; align-items: center; gap: 10px; flex: 1; cursor: pointer; min-width: 0; }
+    .camada-linha .nome { flex: 1; min-width: 0; }
+    .camada.indisponivel .camada-linha { opacity: .5; }
+    .camada input[type=checkbox] { accent-color: var(--verde); width: 15px; height: 15px; }
 
-    /* Símbolos de feição */
-    .simbolo {
-      width: 18px; height: 18px;
-      flex-shrink: 0;
-      display: inline-block;
+    .etiqueta {
+      font-family: "JetBrains Mono", monospace; font-size: 0.62rem; padding: 2px 8px; border-radius: 999px;
+      background: var(--bg); border: 1px solid var(--borda); color: var(--texto-suave);
     }
-    .simbolo.linha { height: 4px; width: 22px; border-radius: 2px; }
-    .simbolo.area { border-radius: 4px; }
-    .simbolo.ponto { border-radius: 50%; width: 12px; height: 12px; }
-    .simbolo.raster {
-      border-radius: 4px;
-      background: linear-gradient(135deg, #d6e4dc, #c9a24a, #b5573a) !important;
-    }
+    .etiqueta.erro { background: rgba(255,92,122,.1); border-color: rgba(255,92,122,.35); color: #ff7b93; }
+    .etiqueta.carregando { background: var(--verde-fumo); border-color: var(--verde-borda); color: var(--verde); animation: pulso 1s infinite; }
+    @keyframes pulso { 50% { opacity: .45; } }
 
-    /* Legenda */
+    .camada-extra {
+      display: none; margin: 10px 0 2px 25px; padding: 11px;
+      background: var(--bg); border-radius: 10px; border: 1px solid var(--verde-borda);
+    }
+    .camada.ativa .camada-extra { display: block; }
+    .camada-extra p { font-size: 0.75rem; color: var(--texto-suave); line-height: 1.5; margin-bottom: 8px; }
+    .camada-extra .fonte { font-size: 0.7rem; }
+    .camada-extra .fonte b { color: var(--verde); font-weight: 500; }
+    .controle { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .controle span { font-size: 0.7rem; color: var(--texto-suave); min-width: 62px; }
+    .controle output { font-family: "JetBrains Mono", monospace; font-size: 0.7rem; min-width: 34px; text-align: right; color: var(--verde); }
+    .controle input[type=range] { flex: 1; accent-color: var(--verde); }
+    .mini-acoes { display: flex; gap: 6px; flex-wrap: wrap; }
+    .mini-acoes button {
+      font-size: 0.72rem; padding: 5px 10px; border-radius: 8px;
+      border: 1px solid var(--borda); background: var(--painel-2); cursor: pointer;
+      transition: all .2s;
+    }
+    .mini-acoes button:hover { border-color: var(--verde); color: var(--verde); background: var(--verde-fumo); }
+
+    .simbolo { width: 18px; height: 18px; flex-shrink: 0; display: inline-block; }
+    .simbolo.linha { height: 4px; width: 22px; border-radius: 2px; box-shadow: 0 0 8px currentColor; }
+    .simbolo.area { border-radius: 4px; border: 1px solid rgba(255,255,255,.2); }
+    .simbolo.ponto { border-radius: 50%; width: 12px; height: 12px; border: 2px solid #050806; box-shadow: 0 0 0 1px rgba(255,255,255,.35); }
+
     .legenda {
-      background: #fff;
-      border: 1px solid var(--borda);
-      border-radius: var(--raio);
-      padding: 14px;
+      background: var(--painel-2); border: 1px solid var(--borda);
+      border-radius: var(--raio); padding: 14px;
     }
-    .legenda h3 {
-      font-family: "Fraunces", Georgia, serif;
-      font-size: 0.95rem;
-      margin-bottom: 10px;
-    }
+    .legenda h3 { font-family: "Fraunces", serif; font-size: 0.95rem; margin-bottom: 10px; }
     .legenda ul { list-style: none; display: grid; gap: 8px; }
-    .legenda li { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--tinta-suave); }
-    .vazio { font-size: 0.82rem; color: var(--tinta-suave); font-style: italic; }
+    .legenda li { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--texto-suave); }
+    .legenda li.sub { padding-left: 24px; font-size: 0.74rem; }
+    .vazio { font-size: 0.82rem; color: var(--texto-suave); font-style: italic; }
 
-    /* ===== Área do mapa ===== */
-    main {
-      position: relative;
-      min-height: 0;
+    .importar {
+      border: 1.5px dashed var(--verde-borda); border-radius: var(--raio); padding: 14px;
+      text-align: center; font-size: 0.78rem; color: var(--texto-suave); cursor: pointer;
+      background: rgba(45,255,143,.025); transition: background .2s, border-color .2s;
     }
-    #mapa {
-      width: 100%;
-      height: 100%;
-      background: var(--papel-2);
-    }
+    .importar:hover, .importar.sobre { background: var(--verde-fumo); border-color: var(--verde); }
+    .importar strong { display: block; color: var(--verde); font-size: 0.84rem; margin-bottom: 2px; }
 
-    /* Moldura de atlas */
+    /* ===== Mapa ===== */
+    main { position: relative; min-height: 0; background: var(--bg); }
+    #mapa { width: 100%; height: 100%; background: #070b09; }
+    #mapa.medindo { cursor: crosshair; }
+
     main::after {
-      content: "";
-      position: absolute;
-      inset: 12px;
-      border: 1px solid rgba(31, 42, 36, 0.18);
-      border-radius: 18px;
-      pointer-events: none;
-      z-index: 500;
+      content: ""; position: absolute; inset: 12px;
+      border: 1px solid var(--verde-borda); border-radius: 18px;
+      box-shadow: inset 0 0 90px rgba(0,0,0,.55);
+      pointer-events: none; z-index: 500;
     }
 
-    /* Título flutuante no mapa */
-    .carimbo {
-      position: absolute;
-      top: 22px; left: 56px;
-      z-index: 600;
-      background: rgba(246, 241, 231, 0.92);
-      backdrop-filter: blur(6px);
-      padding: 10px 16px;
-      border-radius: 12px;
-      border: 1px solid var(--borda);
-      box-shadow: var(--sombra);
-      pointer-events: none;
+    .flutuante {
+      position: absolute; z-index: 600;
+      background: rgba(10, 16, 12, .82); backdrop-filter: blur(10px) saturate(1.2);
+      border: 1px solid var(--verde-borda); box-shadow: var(--sombra);
     }
-    .carimbo strong {
-      font-family: "Fraunces", Georgia, serif;
-      font-size: 1rem;
-      display: block;
+    .carimbo { top: 22px; left: 22px; padding: 10px 16px 10px 18px; border-radius: 12px; pointer-events: none; }
+    .carimbo::before {
+      content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px;
+      background: var(--verde); box-shadow: 0 0 12px var(--verde); border-radius: 3px;
     }
-    .carimbo span { font-size: 0.72rem; color: var(--tinta-suave); letter-spacing: .06em; text-transform: uppercase; }
+    .carimbo strong { font-family: "Fraunces", serif; font-size: 1rem; display: block; }
+    .carimbo span { font-size: 0.68rem; color: var(--verde); letter-spacing: .14em; text-transform: uppercase; }
 
-    /* Rodapé do mapa */
-    .rodape-mapa {
-      position: absolute;
-      bottom: 22px; right: 22px;
-      z-index: 600;
-      background: rgba(255,255,255,0.92);
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-size: 0.72rem;
-      color: var(--tinta-suave);
-      border: 1px solid var(--borda);
-    }
-
-    /* Contador de camadas ativas */
     .contador {
-      position: absolute;
-      top: 22px; right: 22px;
-      z-index: 600;
-      background: var(--verde);
-      color: #fff;
-      padding: 8px 14px;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 500;
-      box-shadow: var(--sombra);
+      top: 22px; right: 70px; padding: 8px 14px 8px 28px; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 500; color: var(--verde);
+    }
+    .contador::before {
+      content: ""; position: absolute; left: 12px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px;
+      border-radius: 50%; background: var(--verde); box-shadow: 0 0 10px var(--verde);
+      animation: pulso 1.8s infinite;
     }
 
-    /* Pop-up do Leaflet com estilo de atlas */
+    .coordenadas {
+      bottom: 22px; right: 22px; padding: 7px 12px; border-radius: 10px;
+      font-family: "JetBrains Mono", monospace; font-size: 0.7rem; color: var(--texto-suave);
+      display: flex; gap: 14px; align-items: center;
+    }
+    .coordenadas b { color: var(--verde); font-weight: 500; }
+
+    .ferramentas {
+      top: 76px; right: 22px; display: flex; flex-direction: column; gap: 4px;
+      padding: 6px; border-radius: 14px;
+    }
+    .ferramentas button {
+      width: 38px; height: 38px; border-radius: 10px; border: 0; background: transparent;
+      cursor: pointer; display: grid; place-items: center; color: var(--texto);
+      transition: background .2s, color .2s, box-shadow .2s;
+    }
+    .ferramentas button:hover { background: var(--verde-fumo); color: var(--verde); }
+    .ferramentas button.ativo { background: var(--verde); color: #03150a; box-shadow: var(--verde-glow); }
+    .ferramentas svg { width: 18px; height: 18px; }
+
+    .medicao { bottom: 22px; left: 22px; padding: 10px 14px; border-radius: 12px; font-size: 0.8rem; display: none; min-width: 200px; }
+    .medicao.visivel { display: block; }
+    .medicao strong { font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 1.3rem; display: block; margin: 2px 0; color: var(--verde); }
+    .medicao small { color: var(--texto-suave); font-size: 0.7rem; }
+
+    .toast {
+      position: absolute; bottom: 70px; left: 50%; transform: translate(-50%, 20px);
+      z-index: 900; background: var(--elev); color: var(--texto); font-size: 0.82rem;
+      padding: 10px 18px; border-radius: 999px; border: 1px solid var(--verde-borda);
+      box-shadow: var(--sombra), var(--verde-glow);
+      opacity: 0; pointer-events: none; transition: opacity .3s, transform .3s;
+      max-width: 90%; text-align: center;
+    }
+    .toast.visivel { opacity: 1; transform: translate(-50%, 0); }
+
+    /* Modal */
+    .modal {
+      position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,.7);
+      display: none; place-items: center; padding: 20px; backdrop-filter: blur(5px);
+    }
+    .modal.visivel { display: grid; }
+    .modal-caixa {
+      background: var(--painel); border: 1px solid var(--verde-borda); border-radius: 20px;
+      max-width: 560px; width: 100%; padding: 28px; max-height: 88vh; overflow-y: auto;
+      box-shadow: 0 30px 80px -20px #000, 0 0 60px -20px rgba(45,255,143,.35);
+    }
+    .modal-caixa h2 { font-family: "Fraunces", serif; font-size: 1.5rem; margin-bottom: 10px; }
+    .modal-caixa h3 { font-size: 0.72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--verde); margin: 18px 0 8px; }
+    .modal-caixa p, .modal-caixa li { font-size: 0.88rem; line-height: 1.7; color: var(--texto-suave); }
+    .modal-caixa ul { padding-left: 18px; }
+    .modal-caixa .fechar { margin-top: 20px; }
+
+    /* Leaflet */
+    .leaflet-container { font-family: "Inter", sans-serif; background: #070b09; }
     .leaflet-popup-content-wrapper {
-      background: var(--papel);
-      border-radius: 14px;
-      box-shadow: var(--sombra);
-      font-family: "Inter", sans-serif;
+      background: rgba(13, 20, 16, .96); color: var(--texto); border-radius: 14px;
+      border: 1px solid var(--verde-borda); box-shadow: var(--sombra), 0 0 30px -10px rgba(45,255,143,.4);
     }
-    .leaflet-popup-content { margin: 14px 16px; font-size: 0.85rem; }
-    .leaflet-popup-content h4 {
-      font-family: "Fraunces", Georgia, serif;
-      font-size: 1rem;
-      margin-bottom: 4px;
-    }
+    .leaflet-popup-tip { background: rgba(13, 20, 16, .96); border: 1px solid var(--verde-borda); }
+    .leaflet-popup-close-button { color: var(--texto-suave) !important; }
+    .leaflet-popup-content { margin: 14px 16px; font-size: 0.85rem; min-width: 190px; }
+    .leaflet-popup-content h4 { font-family: "Fraunces", serif; font-size: 1.02rem; margin-bottom: 2px; }
+    .popup-camada { font-size: 0.64rem; letter-spacing: .16em; text-transform: uppercase; color: var(--verde); margin-bottom: 8px; }
+    .popup-desc { color: var(--texto-suave); margin-bottom: 8px; line-height: 1.45; }
+    .popup-tab { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    .popup-tab td { padding: 4px 0; border-top: 1px solid var(--borda); vertical-align: top; }
+    .popup-tab td:first-child { color: var(--texto-suave); padding-right: 12px; white-space: nowrap; font-family: "JetBrains Mono", monospace; font-size: .72rem; }
 
-    .leaflet-control-zoom a {
-      border-radius: 10px !important;
-      color: var(--verde) !important;
+    .leaflet-control-zoom { border: 1px solid var(--verde-borda) !important; box-shadow: var(--sombra) !important; border-radius: 12px !important; overflow: hidden; }
+    .leaflet-control-zoom a { background: rgba(10,16,12,.9) !important; color: var(--verde) !important; border-bottom: 1px solid var(--borda) !important; }
+    .leaflet-control-zoom a:hover { background: var(--verde-fumo) !important; }
+    .leaflet-control-scale-line {
+      background: rgba(10,16,12,.8); color: var(--texto-suave);
+      border-color: var(--verde) !important; font-family: "JetBrains Mono", monospace;
     }
+    .leaflet-control-attribution { background: rgba(5,8,6,.75) !important; color: var(--texto-suave) !important; }
+    .leaflet-control-attribution a { color: var(--verde) !important; }
+    .rotulo-medida {
+      background: var(--verde); color: #03150a; border: 0; border-radius: 6px; font-weight: 500;
+      font-family: "JetBrains Mono", monospace; font-size: 0.7rem; padding: 2px 6px; box-shadow: var(--verde-glow);
+    }
+    .rotulo-medida::before { display: none; }
 
-    /* ===== Responsivo ===== */
-    @media (max-width: 860px) {
+    /* Responsivo */
+    @media (max-width: 960px) {
+      .segmentos button { padding: 6px 9px; }
+      .titulo p { display: none; }
+      .contador { display: none; }
+    }
+    @media (max-width: 760px) {
       html, body { overflow: auto; }
-      .app { grid-template-columns: 1fr; grid-template-rows: auto auto 70vh; height: auto; }
-      aside { border-right: none; border-bottom: 1px solid var(--borda); max-height: 50vh; }
-      .carimbo { left: 16px; top: 16px; }
-      .contador { top: auto; bottom: 16px; right: 16px; }
-      .rodape-mapa { display: none; }
+      .app, .app.recolhido { grid-template-columns: 1fr; grid-template-rows: auto auto 72vh; height: auto; }
+      .app.recolhido aside { display: none; }
+      aside { border-right: none; border-bottom: 1px solid var(--verde-borda); max-height: 55vh; }
+      .coordenadas { display: none; }
+      header { flex-wrap: wrap; }
+    }
+    @media print {
+      header, aside, .ferramentas, .toast, .contador { display: none !important; }
+      .app { display: block; height: 100vh; }
+      html, body { overflow: visible; }
     }
   </style>
 </head>
 
 <body>
-  <div class="app">
+  <div class="app" id="app">
     <header>
       <div class="marca">
         <div class="selo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#f6f1e7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 17l5-6 4 4 3-3 6 7"/>
-            <path d="M3 21h18"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#03150a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 17l5-6 4 4 3-3 6 7"/><path d="M3 21h18"/>
           </svg>
         </div>
         <div class="titulo">
-          <h1>Atlas de Imperatriz</h1>
-          <p>Geomorfologia · Maranhão</p>
+          <h1 id="titulo-app">Atlas de Imperatriz</h1>
+          <p id="subtitulo-app">Geomorfologia · Maranhão</p>
         </div>
       </div>
       <div class="acoes">
-        <button class="btn" id="btn-todas">Ligar tudo</button>
-        <button class="btn" id="btn-limpar">Limpar</button>
-        <button class="btn" id="btn-base">Base escura</button>
+        <div class="segmentos" id="seg-base" role="group" aria-label="Mapa base"></div>
+        <button class="btn" id="btn-painel" title="Mostrar/ocultar painel (B)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+          Painel
+        </button>
+        <button class="btn" id="btn-sobre" title="Ajuda e atalhos (?)">Sobre</button>
       </div>
     </header>
 
-    <aside>
-      <p class="secao-titulo">Camadas temáticas</p>
+    <aside id="painel">
+      <div class="busca">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="busca" type="search" placeholder="Buscar camada…" autocomplete="off" aria-label="Buscar camada" />
+        <kbd>/</kbd>
+      </div>
+
+      <div class="resumo">
+        <div><strong id="res-cat">0</strong><span>Temas</span></div>
+        <div><strong id="res-cam">0</strong><span>Camadas</span></div>
+        <div><strong id="res-feic">0</strong><span>Feições</span></div>
+      </div>
+
+      <p class="secao-titulo">
+        <span>Camadas temáticas</span>
+        <span style="display:flex;gap:6px">
+          <button class="btn" id="btn-todas" style="padding:4px 10px;font-size:.7rem">Ligar tudo</button>
+          <button class="btn" id="btn-limpar" style="padding:4px 10px;font-size:.7rem">Limpar</button>
+        </span>
+      </p>
       <div id="lista-categorias"></div>
 
-      <p class="secao-titulo">Legenda</p>
+      <p class="secao-titulo"><span>Legenda</span></p>
       <div class="legenda">
         <h3>Símbolos ativos</h3>
         <ul id="legenda-lista"><li class="vazio">Nenhuma camada ativa.</li></ul>
       </div>
+
+      <label class="importar" id="zona-importar">
+        <strong>Importar GeoJSON</strong>
+        Arraste um arquivo aqui ou clique para escolher
+        <input id="arquivo-importar" type="file" accept=".geojson,.json" multiple hidden />
+      </label>
     </aside>
 
-    <main>
+    <main id="area-mapa">
       <div id="mapa"></div>
 
-      <div class="carimbo">
+      <div class="flutuante carimbo">
         <strong>Imperatriz · MA</strong>
         <span>Relevo e drenagem</span>
       </div>
 
-      <div class="contador" id="contador">0 camadas ativas</div>
+      <div class="flutuante contador" id="contador">0 camadas ativas</div>
 
-      <div class="rodape-mapa">Sistema de referência: WGS 84 (EPSG:4326)</div>
+      <div class="flutuante ferramentas" role="toolbar" aria-label="Ferramentas do mapa">
+        <button id="ft-inicio" title="Voltar à visão inicial (H)" aria-label="Visão inicial">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+        </button>
+        <button id="ft-ajustar" title="Ajustar às camadas ativas (F)" aria-label="Ajustar às camadas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        </button>
+        <button id="ft-medir" title="Medir distância (M)" aria-label="Medir distância">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></svg>
+        </button>
+        <button id="ft-tela" title="Tela cheia" aria-label="Tela cheia">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></svg>
+        </button>
+        <button id="ft-imprimir" title="Imprimir / salvar PDF" aria-label="Imprimir">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>
+        </button>
+      </div>
+
+      <div class="flutuante medicao" id="medicao">
+        <small>Medição</small>
+        <strong id="medicao-valor">0 m</strong>
+        <small id="medicao-dica">Clique no mapa para iniciar. Duplo clique encerra.</small>
+      </div>
+
+      <div class="flutuante coordenadas">
+        <span>Lat <b id="co-lat">—</b></span>
+        <span>Lng <b id="co-lng">—</b></span>
+        <span>Z <b id="co-zoom">—</b></span>
+        <span>WGS 84</span>
+      </div>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
     </main>
+  </div>
+
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <div class="modal-caixa">
+      <h2 id="modal-titulo">Atlas Geomorfológico</h2>
+      <p>Atlas digital interativo sobre o relevo, a hidrografia, a geologia e os solos de Imperatriz (MA). As camadas são carregadas sob demanda a partir de arquivos GeoJSON.</p>
+      <h3>Atalhos</h3>
+      <ul>
+        <li><kbd>/</kbd> buscar camada &nbsp; <kbd>B</kbd> painel &nbsp; <kbd>M</kbd> medir</li>
+        <li><kbd>F</kbd> ajustar às camadas ativas &nbsp; <kbd>H</kbd> visão inicial</li>
+        <li><kbd>1</kbd>–<kbd>4</kbd> trocar mapa base &nbsp; <kbd>Esc</kbd> fechar / cancelar</li>
+      </ul>
+      <h3>Dados</h3>
+      <ul>
+        <li>Cada camada lê o arquivo definido em <kbd>data/camadas.json</kbd>.</li>
+        <li>Camadas sem arquivo aparecem como "sem dados" até você adicioná-lo.</li>
+        <li>Você também pode arrastar um GeoJSON para o painel e visualizá-lo na hora.</li>
+        <li>Classificação por atributo: use <kbd>campo</kbd> e <kbd>classes</kbd> na camada para colorir por categoria.</li>
+      </ul>
+      <button class="btn ativo fechar" id="modal-fechar">Entendi</button>
+    </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -390,157 +542,208 @@
     /* =====================================================
        CONFIGURAÇÃO
        ===================================================== */
-    const CENTRO_IMPERATRIZ = [-5.5263, -47.4917];
-    const ZOOM_INICIAL = 12;
+    const PADRAO = {
+      titulo: "Atlas de Imperatriz",
+      subtitulo: "Geomorfologia · Maranhão",
+      centro: [-5.5263, -47.4917],
+      zoom: 12,
+      categorias: []
+    };
 
     const BASES = {
-      claro: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-      escuro: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+      claro:    { nome: "Claro",    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", sub: "abcd", attr: "&copy; OpenStreetMap &copy; CARTO", max: 19 },
+      escuro:   { nome: "Escuro",   url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",  sub: "abcd", attr: "&copy; OpenStreetMap &copy; CARTO", max: 19 },
+      satelite: { nome: "Satélite", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", sub: "", attr: "Tiles &copy; Esri", max: 19 },
+      topo:     { nome: "Topo",     url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", sub: "abc", attr: "&copy; OpenStreetMap, SRTM | &copy; OpenTopoMap", max: 17 }
     };
+    const ORDEM_BASES = ["claro", "escuro", "satelite", "topo"];
 
-    /* Ícones SVG por categoria */
     const ICONES = {
-      hidrico: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>`,
-      relevo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M2 20l6-10 4 6 3-4 7 8z"/></svg>`,
+      hidrico:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>`,
+      relevo:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M2 20l6-10 4 6 3-4 7 8z"/></svg>`,
       geologia: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8l4-4h8l4 4v8l-4 4H8l-4-4z"/><path d="M4 12h16"/></svg>`,
-      solos: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19h16"/><path d="M6 19v-4h12v4"/><path d="M8 15V9h8v6"/></svg>`,
-      uso: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>`,
-      pontos: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`
+      solos:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19h16"/><path d="M6 19v-4h12v4"/><path d="M8 15V9h8v6"/></svg>`,
+      uso:      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>`,
+      pontos:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`,
+      importado:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>`
+    };
+    const ICONE_PADRAO = ICONES.importado;
+    const SETA = `<svg class="seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>`;
+
+    const CORES_CATEGORIA = {
+      hidrico:  { fundo: "rgba(56,189,248,.12)",  texto: "#38bdf8" },
+      relevo:   { fundo: "rgba(45,255,143,.12)",  texto: "#2dff8f" },
+      geologia: { fundo: "rgba(240,180,41,.12)",  texto: "#f0b429" },
+      solos:    { fundo: "rgba(255,138,92,.12)",  texto: "#ff8a5c" },
+      uso:      { fundo: "rgba(167,139,250,.12)", texto: "#a78bfa" },
+      pontos:   { fundo: "rgba(255,92,122,.12)",  texto: "#ff5c7a" },
+      importado:{ fundo: "rgba(200,220,210,.10)", texto: "#c8dcd2" }
     };
 
-    /* Paleta por categoria (cor de fundo do ícone e cor da feição) */
-    const CORES_CATEGORIA = {
-      hidrico:  { fundo: "#dbeaf2", texto: "#2c6e91" },
-      relevo:   { fundo: "#e5ece2", texto: "#2f5d4e" },
-      geologia: { fundo: "#f3e7d0", texto: "#9a6b1f" },
-      solos:    { fundo: "#f2dfd6", texto: "#b5573a" },
-      uso:      { fundo: "#e9e3f0", texto: "#6b4f8a" },
-      pontos:   { fundo: "#f6dcdc", texto: "#a23b3b" }
-    };
+    const $ = (s, r = document) => r.querySelector(s);
+    const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
     /* =====================================================
        MAPA
        ===================================================== */
-    const mapa = L.map("mapa", {
-      center: CENTRO_IMPERATRIZ,
-      zoom: ZOOM_INICIAL,
-      zoomControl: false
-    });
-
+    const mapa = L.map("mapa", { center: PADRAO.centro, zoom: PADRAO.zoom, zoomControl: false, preferCanvas: true });
     L.control.zoom({ position: "topright" }).addTo(mapa);
     L.control.scale({ imperial: false, position: "bottomleft" }).addTo(mapa);
 
-    let camadaBase = L.tileLayer(BASES.claro, {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      subdomains: "abcd",
-      maxZoom: 19
-    }).addTo(mapa);
-
-    let baseEscura = false;
-    document.getElementById("btn-base").addEventListener("click", (e) => {
-      baseEscura = !baseEscura;
-      mapa.removeLayer(camadaBase);
-      camadaBase = L.tileLayer(baseEscura ? BASES.escuro : BASES.claro, {
-        subdomains: "abcd",
-        maxZoom: 19
-      }).addTo(mapa);
-      camadaBase.bringToBack();
-      e.currentTarget.classList.toggle("ativo", baseEscura);
+    // Ordem de empilhamento: áreas < linhas < pontos
+    [["p-area", 410], ["p-linha", 420], ["p-ponto", 430], ["p-medida", 450]].forEach(([n, z]) => {
+      mapa.createPane(n).style.zIndex = z;
     });
+
+    let baseAtual = null, baseCamada = null;
+    function definirBase(chave, silencioso) {
+      const b = BASES[chave]; if (!b) return;
+      if (baseCamada) mapa.removeLayer(baseCamada);
+      baseCamada = L.tileLayer(b.url, { attribution: b.attr, subdomains: b.sub || "abc", maxZoom: b.max }).addTo(mapa);
+      baseCamada.bringToBack();
+      baseAtual = chave;
+      document.querySelectorAll("#seg-base button").forEach((x) => x.classList.toggle("ativo", x.dataset.base === chave));
+      try { localStorage.setItem("atlas-base2", chave); } catch (e) {}
+    }
+    const segBase = $("#seg-base");
+    ORDEM_BASES.forEach((k, i) => {
+      const b = document.createElement("button");
+      b.dataset.base = k; b.textContent = BASES[k].nome; b.title = `${BASES[k].nome} (${i + 1})`;
+      b.addEventListener("click", () => definirBase(k));
+      segBase.appendChild(b);
+    });
+    let baseSalva = "escuro";
+    try { baseSalva = localStorage.getItem("atlas-base2") || "escuro"; } catch (e) {}
+    definirBase(BASES[baseSalva] ? baseSalva : "escuro");
+
+    /* Coordenadas ao vivo */
+    mapa.on("mousemove", (e) => {
+      $("#co-lat").textContent = e.latlng.lat.toFixed(5);
+      $("#co-lng").textContent = e.latlng.lng.toFixed(5);
+    });
+    const atualizaZoom = () => ($("#co-zoom").textContent = mapa.getZoom());
+    mapa.on("zoomend", atualizaZoom); atualizaZoom();
 
     /* =====================================================
        ESTADO
        ===================================================== */
-    const estado = {
-      categorias: [],
-      camadas: new Map()
-    };
+    const estado = { config: PADRAO, categorias: [], camadas: new Map(), contImport: 0 };
+
+    function toast(msg, ms = 3200) {
+      const t = $("#toast"); t.textContent = msg; t.classList.add("visivel");
+      clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("visivel"), ms);
+    }
 
     /* =====================================================
-       CARREGAMENTO DO JSON
+       CARREGAMENTO DA CONFIGURAÇÃO
        ===================================================== */
     async function iniciar() {
       try {
-        const resposta = await fetch("data/camadas.json");
-        if (!resposta.ok) throw new Error("camadas.json não encontrado");
-        const config = await resposta.json();
-        estado.categorias = config.categorias;
-        montarPainel();
+        const r = await fetch("data/camadas.json", { cache: "no-cache" });
+        if (!r.ok) throw new Error(r.status);
+        estado.config = Object.assign({}, PADRAO, await r.json());
       } catch (erro) {
         console.error(erro);
-        document.getElementById("lista-categorias").innerHTML =
-          `<p class="vazio">Não foi possível ler data/camadas.json.</p>`;
+        $("#lista-categorias").innerHTML =
+          `<p class="vazio">Não foi possível ler data/camadas.json. Abra o atlas por um servidor local (ex.: <code>python -m http.server</code>).</p>`;
+        return;
       }
+      const c = estado.config;
+      $("#titulo-app").textContent = c.titulo;
+      $("#subtitulo-app").textContent = c.subtitulo;
+      document.title = `${c.titulo} · ${c.subtitulo}`;
+      estado.categorias = c.categorias;
+      if (!location.hash) mapa.setView(c.centro, c.zoom);
+      montarPainel();
+      restaurarEstado();
+      atualizarResumo();
     }
 
     /* =====================================================
        PAINEL
        ===================================================== */
     function montarPainel() {
-      const lista = document.getElementById("lista-categorias");
+      const lista = $("#lista-categorias");
       lista.innerHTML = "";
+      estado.camadas.clear();
+      estado.categorias.forEach((cat) => lista.appendChild(criarCategoria(cat)));
+    }
 
-      estado.categorias.forEach((cat) => {
-        const cor = CORES_CATEGORIA[cat.id] || { fundo: "#eee", texto: "#333" };
+    function criarCategoria(cat) {
+      const cor = CORES_CATEGORIA[cat.id] || CORES_CATEGORIA.importado;
+      const bloco = document.createElement("section");
+      bloco.className = "categoria";
+      bloco.dataset.id = cat.id;
+      bloco.style.setProperty("--cat-cor", cor.texto);
+      bloco.innerHTML = `
+        <div class="categoria-cab" role="button" tabindex="0" aria-expanded="false">
+          <span class="cat-icone" style="background:${cor.fundo};color:${cor.texto}">${ICONES[cat.id] || ICONE_PADRAO}</span>
+          <span class="cat-texto"><strong>${esc(cat.nome)}</strong><span>${esc(cat.descricao)}</span></span>
+          <button class="interruptor" title="Ligar/desligar categoria" aria-label="Ligar ou desligar ${esc(cat.nome)}"></button>
+          ${SETA}
+        </div>
+        <div class="camadas"><div></div></div>`;
 
-        const bloco = document.createElement("section");
-        bloco.className = "categoria";
-        bloco.dataset.id = cat.id;
-        bloco.innerHTML = `
-          <button class="categoria-cab" aria-expanded="false">
-            <span class="cat-icone" style="background:${cor.fundo};color:${cor.texto}">
-              ${ICONES[cat.id] || ""}
-            </span>
-            <span class="cat-texto">
-              <strong>${cat.nome}</strong>
-              <span>${cat.descricao}</span>
-            </span>
-            <span class="interruptor" title="Ligar/desligar categoria"></span>
-          </button>
-          <div class="camadas"><div></div></div>
-        `;
-
-        const cab = bloco.querySelector(".categoria-cab");
-        const corpo = bloco.querySelector(".camadas > div");
-
-        cab.addEventListener("click", (e) => {
-          const alvo = e.target;
-          if (alvo.classList.contains("interruptor")) {
-            alternarCategoria(cat.id);
-          } else {
-            const aberta = bloco.classList.toggle("aberta");
-            cab.setAttribute("aria-expanded", aberta);
-          }
-        });
-
-        cat.camadas.forEach((meta) => {
-          const linha = document.createElement("label");
-          linha.className = "camada";
-          linha.dataset.id = meta.id;
-          linha.innerHTML = `
-            <input type="checkbox" />
-            <span class="simbolo ${meta.tipo}" style="background:${meta.cor}"></span>
-            <span class="nome">${meta.nome}</span>
-            <span class="etiqueta">${meta.tipo}</span>
-          `;
-
-          const input = linha.querySelector("input");
-          input.addEventListener("change", () => alternarCamada(meta.id, input.checked));
-
-          corpo.appendChild(linha);
-          estado.camadas.set(meta.id, {
-            meta,
-            categoria: cat.id,
-            grupo: L.layerGroup(),
-            carregada: false,
-            ativa: false,
-            elemento: linha,
-            input
-          });
-        });
-
-        lista.appendChild(bloco);
+      const cab = $(".categoria-cab", bloco);
+      const corpo = $(".camadas > div", bloco);
+      const alternarAbertura = () => {
+        const aberta = bloco.classList.toggle("aberta");
+        cab.setAttribute("aria-expanded", aberta);
+      };
+      cab.addEventListener("click", (e) => {
+        if (e.target.closest(".interruptor")) { alternarCategoria(cat.id); return; }
+        alternarAbertura();
       });
+      cab.addEventListener("keydown", (e) => {
+        if ((e.key === "Enter" || e.key === " ") && e.target === cab) { e.preventDefault(); alternarAbertura(); }
+      });
+
+      cat.camadas.forEach((meta) => corpo.appendChild(criarCamada(cat, meta)));
+      return bloco;
+    }
+
+    function criarCamada(cat, meta) {
+      const linha = document.createElement("div");
+      linha.className = "camada";
+      linha.dataset.id = meta.id;
+      const op = Math.round((meta.opacidade ?? (meta.tipo === "area" ? 0.35 : 1)) * 100);
+      linha.innerHTML = `
+        <div class="camada-linha">
+          <label>
+            <input type="checkbox" />
+            <span class="simbolo ${meta.tipo}" style="background:${meta.cor};color:${meta.cor}"></span>
+            <span class="nome">${esc(meta.nome)}</span>
+          </label>
+          <span class="etiqueta" data-rotulo>${esc(meta.tipo)}</span>
+        </div>
+        <div class="camada-extra">
+          ${meta.descricao ? `<p>${esc(meta.descricao)}</p>` : ""}
+          ${meta.fonte ? `<p class="fonte"><b>Fonte:</b> ${esc(meta.fonte)}</p>` : ""}
+          <div class="controle"><span>Opacidade</span><input type="range" min="5" max="100" value="${op}" /><output>${op}%</output></div>
+          <div class="mini-acoes">
+            <button data-acao="zoom">Ir para a camada</button>
+            <button data-acao="baixar">Baixar GeoJSON</button>
+          </div>
+        </div>`;
+
+      const input = $("input[type=checkbox]", linha);
+      input.addEventListener("change", () => alternarCamada(meta.id, input.checked));
+
+      const range = $("input[type=range]", linha), saida = $("output", linha);
+      range.addEventListener("input", () => {
+        saida.textContent = range.value + "%";
+        const reg = estado.camadas.get(meta.id);
+        reg.opacidade = range.value / 100;
+        aplicarOpacidade(reg);
+      });
+      $("[data-acao=zoom]", linha).addEventListener("click", () => irParaCamada(meta.id));
+      $("[data-acao=baixar]", linha).addEventListener("click", () => baixarCamada(meta.id));
+
+      estado.camadas.set(meta.id, {
+        meta, categoria: cat.id, grupo: L.layerGroup(), camada: null, dados: null,
+        carregada: false, ativa: false, elemento: linha, input, opacidade: op / 100, total: 0
+      });
+      return linha;
     }
 
     /* =====================================================
@@ -552,130 +755,383 @@
 
       if (ligar) {
         if (!reg.carregada) {
+          definirRotulo(reg, "carregando…", "carregando");
           const ok = await carregarDados(reg);
-          if (!ok) {
-            reg.input.checked = false;
-            return;
-          }
+          if (!ok) { reg.input.checked = false; return; }
         }
         reg.grupo.addTo(mapa);
         reg.ativa = true;
+        reg.elemento.classList.add("ativa");
+        definirRotulo(reg, reg.total ? `${reg.total} feições` : reg.meta.tipo);
       } else {
         mapa.removeLayer(reg.grupo);
         reg.ativa = false;
+        reg.elemento.classList.remove("ativa");
+        definirRotulo(reg, reg.total ? `${reg.total} feições` : reg.meta.tipo);
       }
-
       atualizarCategoriaVisual(reg.categoria);
       atualizarInterface();
+      salvarEstado();
+    }
+
+    function definirRotulo(reg, texto, classe = "") {
+      const el = $("[data-rotulo]", reg.elemento);
+      el.textContent = texto;
+      el.className = "etiqueta " + classe;
     }
 
     function alternarCategoria(idCat) {
       const cat = estado.categorias.find((c) => c.id === idCat);
-      const todasAtivas = cat.camadas.every((m) => estado.camadas.get(m.id).ativa);
+      const todas = cat.camadas.every((m) => estado.camadas.get(m.id).ativa);
       cat.camadas.forEach((m) => {
         const reg = estado.camadas.get(m.id);
-        reg.input.checked = !todasAtivas;
-        alternarCamada(m.id, !todasAtivas);
+        reg.input.checked = !todas;
+        alternarCamada(m.id, !todas);
       });
     }
 
+    /* =====================================================
+       DADOS
+       ===================================================== */
     async function carregarDados(reg) {
       const { meta } = reg;
-
-      if (!meta.arquivo) {
-        reg.carregada = true;
-        return true;
-      }
-
+      if (reg.dados) { construirCamada(reg); return true; }
+      if (!meta.arquivo) { reg.carregada = true; return true; }
       try {
         const r = await fetch(meta.arquivo);
         if (!r.ok) throw new Error(r.status);
-        const geojson = await r.json();
-
-        const camada = L.geoJSON(geojson, {
-          style: () => estilo(meta),
-          pointToLayer: (feicao, latlng) =>
-            L.circleMarker(latlng, {
-              radius: 6,
-              color: "#fff",
-              weight: 2,
-              fillColor: meta.cor,
-              fillOpacity: 0.95
-            }),
-          onEachFeature: (feicao, layer) => {
-            const props = feicao.properties || {};
-            const titulo = props.nome || props.name || meta.nome;
-            const detalhe = props.descricao || props.description || meta.descricao || "";
-            layer.bindPopup(`<h4>${titulo}</h4><div>${detalhe}</div>`);
-          }
-        });
-
-        reg.grupo.addLayer(camada);
-        reg.carregada = true;
+        reg.dados = await r.json();
+        construirCamada(reg);
         return true;
       } catch (erro) {
-        console.warn(`Sem dados para "${meta.nome}" (${meta.arquivo}).`);
+        console.warn(`Sem dados para "${meta.nome}" (${meta.arquivo}).`, erro);
         reg.elemento.classList.add("indisponivel");
-        reg.elemento.title = "Dados ainda não adicionados";
+        definirRotulo(reg, "sem dados", "erro");
+        toast(`"${meta.nome}": arquivo ${meta.arquivo} não encontrado.`);
         return false;
       }
     }
 
-    function estilo(meta) {
-      if (meta.tipo === "linha") {
-        return { color: meta.cor, weight: 2.2, opacity: 0.9 };
+    function corDaFeicao(meta, props) {
+      if (meta.campo && Array.isArray(meta.classes)) {
+        const k = props?.[meta.campo];
+        const c = meta.classes.find((x) => String(x.valor) === String(k));
+        if (c) return c.cor;
       }
-      if (meta.tipo === "area") {
-        return {
-          color: meta.cor,
-          weight: 1.2,
-          fillColor: meta.cor,
-          fillOpacity: meta.opacidade ?? 0.35
-        };
-      }
-      return { color: meta.cor, weight: 1.5, fillColor: meta.cor, fillOpacity: 0.6 };
+      return meta.cor;
+    }
+
+    function painelDe(tipo) { return tipo === "linha" ? "p-linha" : tipo === "ponto" ? "p-ponto" : "p-area"; }
+
+    function estiloFeicao(reg, feicao) {
+      const { meta } = reg;
+      const cor = corDaFeicao(meta, feicao?.properties);
+      const o = reg.opacidade;
+      if (meta.tipo === "linha") return { color: cor, weight: meta.espessura ?? 2.2, opacity: Math.min(1, o), pane: "p-linha" };
+      if (meta.tipo === "area") return { color: cor, weight: 1.4, opacity: Math.min(1, o + 0.5), fillColor: cor, fillOpacity: o, pane: "p-area" };
+      return { color: "#050806", weight: 1.8, fillColor: cor, fillOpacity: Math.min(1, o), opacity: Math.min(1, o), pane: "p-ponto" };
+    }
+
+    function popupHTML(reg, feicao) {
+      const props = feicao.properties || {};
+      const titulo = props.nome || props.name || props.NOME || reg.meta.nome;
+      const desc = props.descricao || props.description || "";
+      const ocultas = new Set(["nome", "name", "NOME", "descricao", "description"]);
+      const linhas = Object.entries(props)
+        .filter(([k, v]) => !ocultas.has(k) && v !== null && v !== "" && typeof v !== "object")
+        .map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join("");
+      return `<h4>${esc(titulo)}</h4>
+        <div class="popup-camada">${esc(reg.meta.nome)}</div>
+        ${desc ? `<div class="popup-desc">${esc(desc)}</div>` : ""}
+        ${linhas ? `<table class="popup-tab">${linhas}</table>` : ""}`;
+    }
+
+    function construirCamada(reg) {
+      const { meta } = reg;
+      reg.grupo.clearLayers();
+      let total = 0;
+      reg.camada = L.geoJSON(reg.dados, {
+        style: (f) => estiloFeicao(reg, f),
+        pointToLayer: (f, latlng) => L.circleMarker(latlng, { radius: meta.raio ?? 6, ...estiloFeicao(reg, f) }),
+        onEachFeature: (f, layer) => {
+          total++;
+          layer.bindPopup(() => popupHTML(reg, f), { maxWidth: 320 });
+          if (meta.tipo !== "ponto") {
+            layer.on("mouseover", () => layer.setStyle?.({ weight: (meta.espessura ?? 2.2) + 1.5 }));
+            layer.on("mouseout", () => reg.camada.resetStyle(layer));
+          } else {
+            layer.on("mouseover", () => layer.setRadius?.((meta.raio ?? 6) + 2));
+            layer.on("mouseout", () => layer.setRadius?.(meta.raio ?? 6));
+          }
+        }
+      });
+      reg.grupo.addLayer(reg.camada);
+      reg.total = total;
+      reg.carregada = true;
+      atualizarResumo();
+    }
+
+    function aplicarOpacidade(reg) {
+      if (!reg.camada) return;
+      reg.camada.eachLayer((l) => {
+        const f = l.feature;
+        l.setStyle?.(estiloFeicao(reg, f));
+      });
+    }
+
+    function irParaCamada(id) {
+      const reg = estado.camadas.get(id);
+      if (!reg?.camada) return;
+      const b = reg.camada.getBounds();
+      if (b.isValid()) mapa.fitBounds(b, { padding: [50, 50], maxZoom: 15 });
+    }
+
+    function baixarCamada(id) {
+      const reg = estado.camadas.get(id);
+      if (!reg?.dados) return toast("Ative a camada antes de baixar.");
+      const blob = new Blob([JSON.stringify(reg.dados)], { type: "application/geo+json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${reg.meta.id}.geojson`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     }
 
     /* =====================================================
        INTERFACE
        ===================================================== */
     function atualizarCategoriaVisual(idCat) {
-      const bloco = document.querySelector(`.categoria[data-id="${idCat}"]`);
+      const bloco = $(`.categoria[data-id="${CSS.escape(idCat)}"]`);
       const cat = estado.categorias.find((c) => c.id === idCat);
-      const algumaAtiva = cat.camadas.some((m) => estado.camadas.get(m.id).ativa);
-      bloco.classList.toggle("ligada", algumaAtiva);
+      if (!bloco || !cat) return;
+      bloco.classList.toggle("ligada", cat.camadas.some((m) => estado.camadas.get(m.id).ativa));
     }
 
     function atualizarInterface() {
       const ativas = [...estado.camadas.values()].filter((r) => r.ativa);
-      document.getElementById("contador").textContent =
-        `${ativas.length} ${ativas.length === 1 ? "camada ativa" : "camadas ativas"}`;
+      $("#contador").textContent = `${ativas.length} ${ativas.length === 1 ? "camada ativa" : "camadas ativas"}`;
 
-      const legenda = document.getElementById("legenda-lista");
-      legenda.innerHTML = ativas.length
-        ? ativas.map((r) => `
-            <li>
-              <span class="simbolo ${r.meta.tipo}" style="background:${r.meta.cor}"></span>
-              ${r.meta.nome}
-            </li>`).join("")
-        : `<li class="vazio">Nenhuma camada ativa.</li>`;
+      const leg = $("#legenda-lista");
+      leg.innerHTML = ativas.length ? ativas.map((r) => {
+        const base = `<li><span class="simbolo ${r.meta.tipo}" style="background:${r.meta.cor};color:${r.meta.cor}"></span>${esc(r.meta.nome)}</li>`;
+        const classes = (r.meta.classes || []).map((c) =>
+          `<li class="sub"><span class="simbolo area" style="background:${esc(c.cor)};width:14px;height:14px"></span>${esc(c.rotulo ?? c.valor)}</li>`).join("");
+        return base + classes;
+      }).join("") : `<li class="vazio">Nenhuma camada ativa.</li>`;
     }
 
-    document.getElementById("btn-todas").addEventListener("click", () => {
-      estado.categorias.forEach((c) => {
-        c.camadas.forEach((m) => {
+    function atualizarResumo() {
+      const regs = [...estado.camadas.values()];
+      $("#res-cat").textContent = estado.categorias.length;
+      $("#res-cam").textContent = regs.length;
+      $("#res-feic").textContent = regs.reduce((s, r) => s + r.total, 0).toLocaleString("pt-BR");
+    }
+
+    $("#btn-todas").addEventListener("click", () => {
+      estado.camadas.forEach((reg) => { reg.input.checked = true; alternarCamada(reg.meta.id, true); });
+    });
+    $("#btn-limpar").addEventListener("click", () => {
+      estado.camadas.forEach((reg) => { reg.input.checked = false; alternarCamada(reg.meta.id, false); });
+    });
+
+    /* Busca */
+    $("#busca").addEventListener("input", (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      document.querySelectorAll(".categoria").forEach((bloco) => {
+        const cat = estado.categorias.find((c) => c.id === bloco.dataset.id);
+        let algum = false;
+        cat.camadas.forEach((m) => {
           const reg = estado.camadas.get(m.id);
-          reg.input.checked = true;
-          alternarCamada(m.id, true);
+          const bate = !q || [m.nome, m.descricao, m.fonte, cat.nome].join(" ").toLowerCase().includes(q);
+          reg.elemento.classList.toggle("oculta", !bate);
+          if (bate) algum = true;
         });
+        bloco.classList.toggle("oculta", !algum);
+        if (q && algum) bloco.classList.add("aberta");
       });
     });
 
-    document.getElementById("btn-limpar").addEventListener("click", () => {
-      estado.camadas.forEach((reg) => {
-        reg.input.checked = false;
-        alternarCamada(reg.meta.id, false);
+    /* Painel recolhível */
+    function alternarPainel() {
+      $("#app").classList.toggle("recolhido");
+      setTimeout(() => mapa.invalidateSize(), 320);
+    }
+    $("#btn-painel").addEventListener("click", alternarPainel);
+
+    /* Ferramentas */
+    $("#ft-inicio").addEventListener("click", voltarInicio);
+    $("#ft-ajustar").addEventListener("click", ajustarAtivas);
+    $("#ft-medir").addEventListener("click", () => alternarMedicao());
+    $("#ft-tela").addEventListener("click", () => {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen?.();
+    });
+    $("#ft-imprimir").addEventListener("click", () => window.print());
+    document.addEventListener("fullscreenchange", () => setTimeout(() => mapa.invalidateSize(), 200));
+
+    function voltarInicio() { mapa.flyTo(estado.config.centro, estado.config.zoom, { duration: 0.8 }); }
+    function ajustarAtivas() {
+      const b = L.latLngBounds([]);
+      estado.camadas.forEach((r) => { if (r.ativa && r.camada) { const x = r.camada.getBounds(); if (x.isValid()) b.extend(x); } });
+      if (b.isValid()) mapa.flyToBounds(b, { padding: [50, 50], maxZoom: 15, duration: 0.8 });
+      else toast("Nenhuma camada ativa com dados para enquadrar.");
+    }
+
+    /* =====================================================
+       MEDIÇÃO DE DISTÂNCIA
+       ===================================================== */
+    const medida = { ativa: false, pontos: [], linha: null, marcas: L.layerGroup(), rotulos: [] };
+    medida.marcas.addTo(mapa);
+
+    function fmtDist(m) { return m >= 1000 ? (m / 1000).toFixed(2).replace(".", ",") + " km" : Math.round(m) + " m"; }
+    function totalMedida() { let t = 0; for (let i = 1; i < medida.pontos.length; i++) t += medida.pontos[i - 1].distanceTo(medida.pontos[i]); return t; }
+
+    function alternarMedicao(forcar) {
+      medida.ativa = forcar ?? !medida.ativa;
+      $("#ft-medir").classList.toggle("ativo", medida.ativa);
+      $("#mapa").classList.toggle("medindo", medida.ativa);
+      $("#medicao").classList.toggle("visivel", medida.ativa);
+      if (medida.ativa) { mapa.doubleClickZoom.disable(); } else { limparMedicao(); mapa.doubleClickZoom.enable(); }
+    }
+    function limparMedicao() {
+      medida.pontos = []; medida.marcas.clearLayers();
+      if (medida.linha) { mapa.removeLayer(medida.linha); medida.linha = null; }
+      $("#medicao-valor").textContent = "0 m";
+      $("#medicao-dica").textContent = "Clique no mapa para iniciar. Duplo clique encerra.";
+    }
+    mapa.on("click", (e) => {
+      if (!medida.ativa) return;
+      if (medida.finalizada) { limparMedicao(); medida.finalizada = false; }
+      medida.pontos.push(e.latlng);
+      const m = L.circleMarker(e.latlng, { radius: 4, color: "#050806", weight: 2, fillColor: "#2dff8f", fillOpacity: 1, pane: "p-medida" });
+      if (medida.pontos.length > 1) m.bindTooltip(fmtDist(totalMedida()), { permanent: true, direction: "top", className: "rotulo-medida", offset: [0, -4] });
+      medida.marcas.addLayer(m);
+      if (!medida.linha) medida.linha = L.polyline(medida.pontos, { color: "#2dff8f", weight: 2.5, dashArray: "6 6", pane: "p-medida" }).addTo(mapa);
+      else medida.linha.setLatLngs(medida.pontos);
+      $("#medicao-valor").textContent = fmtDist(totalMedida());
+      $("#medicao-dica").textContent = medida.pontos.length < 2 ? "Clique para adicionar o próximo ponto." : "Duplo clique encerra · Esc cancela.";
+    });
+    mapa.on("dblclick", () => {
+      if (!medida.ativa || medida.pontos.length < 2) return;
+      medida.finalizada = true;
+      $("#medicao-dica").textContent = "Medição concluída. Clique para nova medição.";
+    });
+
+    /* =====================================================
+       IMPORTAR GEOJSON (arrastar e soltar)
+       ===================================================== */
+    const zona = $("#zona-importar");
+    ["dragenter", "dragover"].forEach((ev) => zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.add("sobre"); }));
+    ["dragleave", "drop"].forEach((ev) => zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.remove("sobre"); }));
+    zona.addEventListener("drop", (e) => importarArquivos(e.dataTransfer.files));
+    $("#arquivo-importar").addEventListener("change", (e) => { importarArquivos(e.target.files); e.target.value = ""; });
+    // Soltar em qualquer lugar da janela
+    window.addEventListener("dragover", (e) => e.preventDefault());
+    window.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer?.files?.length) importarArquivos(e.dataTransfer.files); });
+
+    async function importarArquivos(arquivos) {
+      for (const f of arquivos) {
+        try {
+          const dados = JSON.parse(await f.text());
+          if (!dados.type) throw new Error("não é GeoJSON");
+          adicionarImportada(f.name.replace(/\.(geo)?json$/i, ""), dados);
+        } catch (e) {
+          toast(`Não foi possível ler "${f.name}" como GeoJSON.`);
+        }
+      }
+    }
+
+    function tipoGeometria(dados) {
+      const feats = dados.type === "FeatureCollection" ? dados.features : [dados.type === "Feature" ? dados : { geometry: dados }];
+      const g = feats.find((x) => x?.geometry)?.geometry?.type || "";
+      return /Point/.test(g) ? "ponto" : /Line/.test(g) ? "linha" : "area";
+    }
+
+    function adicionarImportada(nome, dados) {
+      const idCat = "importado";
+      let cat = estado.categorias.find((c) => c.id === idCat);
+      if (!cat) {
+        cat = { id: idCat, nome: "Importadas", descricao: "Arquivos adicionados por você", camadas: [] };
+        estado.categorias.push(cat);
+        $("#lista-categorias").appendChild(criarCategoria(cat));
+      }
+      const paleta = ["#38bdf8", "#2dff8f", "#a78bfa", "#f0b429", "#ff8a5c", "#ff5c7a"];
+      const meta = {
+        id: `importada-${++estado.contImport}`, nome, tipo: tipoGeometria(dados),
+        cor: paleta[estado.contImport % paleta.length], opacidade: 0.4,
+        descricao: "Camada importada localmente; não é salva no servidor."
+      };
+      cat.camadas.push(meta);
+      const bloco = $(`.categoria[data-id="importado"] .camadas > div`);
+      const reg = criarCamadaRegistro(cat, meta, bloco);
+      reg.dados = dados;
+      const bloco2 = $(`.categoria[data-id="importado"]`); bloco2.classList.add("aberta");
+      reg.input.checked = true;
+      alternarCamada(meta.id, true).then(() => { irParaCamada(meta.id); toast(`"${nome}" importada (${reg.total} feições).`); });
+    }
+    function criarCamadaRegistro(cat, meta, corpo) {
+      const linha = criarCamada(cat, meta); corpo.appendChild(linha);
+      return estado.camadas.get(meta.id);
+    }
+
+    /* =====================================================
+       PERSISTÊNCIA (camadas ativas + posição)
+       ===================================================== */
+    function salvarEstado() {
+      try {
+        const ativas = [...estado.camadas.values()].filter((r) => r.ativa && !r.meta.id.startsWith("importada-")).map((r) => r.meta.id);
+        localStorage.setItem("atlas-ativas", JSON.stringify(ativas));
+      } catch (e) {}
+    }
+    function restaurarEstado() {
+      // Hash tem prioridade: #z/lat/lng/id1,id2
+      const m = location.hash.match(/^#(\d+)\/(-?[\d.]+)\/(-?[\d.]+)(?:\/(.*))?$/);
+      let ids = null;
+      if (m) {
+        mapa.setView([+m[2], +m[3]], +m[1]);
+        ids = m[4] ? m[4].split(",") : [];
+      } else {
+        try { ids = JSON.parse(localStorage.getItem("atlas-ativas") || "null"); } catch (e) {}
+      }
+      (ids || []).forEach((id) => {
+        const reg = estado.camadas.get(id);
+        if (reg) { reg.input.checked = true; alternarCamada(id, true); $(`.categoria[data-id="${CSS.escape(reg.categoria)}"]`)?.classList.add("aberta"); }
       });
+    }
+    function atualizarHash() {
+      const c = mapa.getCenter();
+      const ids = [...estado.camadas.values()].filter((r) => r.ativa && !r.meta.id.startsWith("importada-")).map((r) => r.meta.id).join(",");
+      history.replaceState(null, "", `#${mapa.getZoom()}/${c.lat.toFixed(4)}/${c.lng.toFixed(4)}${ids ? "/" + ids : ""}`);
+    }
+    mapa.on("moveend", atualizarHash);
+
+    /* =====================================================
+       MODAL E ATALHOS
+       ===================================================== */
+    const modal = $("#modal");
+    const abrirModal = () => modal.classList.add("visivel");
+    const fecharModal = () => modal.classList.remove("visivel");
+    $("#btn-sobre").addEventListener("click", abrirModal);
+    $("#modal-fechar").addEventListener("click", fecharModal);
+    modal.addEventListener("click", (e) => { if (e.target === modal) fecharModal(); });
+
+    document.addEventListener("keydown", (e) => {
+      const digitando = /INPUT|TEXTAREA/.test(document.activeElement?.tagName);
+      if (e.key === "Escape") {
+        if (modal.classList.contains("visivel")) return fecharModal();
+        if (medida.ativa) return alternarMedicao(false);
+        if (digitando) document.activeElement.blur();
+        return;
+      }
+      if (digitando || e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === "/") { e.preventDefault(); $("#busca").focus(); }
+      else if (k === "b") alternarPainel();
+      else if (k === "m") alternarMedicao();
+      else if (k === "f") ajustarAtivas();
+      else if (k === "h") voltarInicio();
+      else if (k === "?") abrirModal();
+      else if (["1", "2", "3", "4"].includes(k)) definirBase(ORDEM_BASES[+k - 1]);
     });
 
     iniciar();
