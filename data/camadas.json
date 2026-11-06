@@ -1,4 +1,11 @@
 {
+  "titulo": "Atlas de Imperatriz",
+  "subtitulo": "Geomorfologia · Maranhão",
+  "centro": [
+    -5.5263,
+    -47.4917
+  ],
+  "zoom": 12,
   "categorias": [
     {
       "id": "hidrico",
@@ -9,16 +16,20 @@
           "id": "rede-drenagem",
           "nome": "Rede de drenagem",
           "tipo": "linha",
-          "cor": "#2c6e91",
+          "cor": "#38bdf8",
+          "espessura": 2.4,
           "arquivo": "data/rede-drenagem.geojson",
+          "fonte": "Dados do projeto",
           "descricao": "Cursos d'água da bacia urbana e periurbana de Imperatriz."
         },
         {
           "id": "nascentes",
           "nome": "Nascentes",
           "tipo": "ponto",
-          "cor": "#4aa3c7",
+          "cor": "#7dd3fc",
+          "raio": 7,
           "arquivo": "data/nascentes.geojson",
+          "fonte": "Levantamento de campo",
           "descricao": "Pontos de surgência identificados em campo."
         }
       ]
@@ -32,9 +43,10 @@
           "id": "hipsometria",
           "nome": "Hipsometria",
           "tipo": "area",
-          "cor": "#2f5d4e",
-          "opacidade": 0.35,
+          "cor": "#2dff8f",
+          "opacidade": 0.32,
           "arquivo": "data/hipsometria.geojson",
+          "fonte": "Modelo digital de elevação",
           "descricao": "Faixas de altitude em metros."
         }
       ]
@@ -48,8 +60,10 @@
           "id": "unidades-geologicas",
           "nome": "Unidades geológicas",
           "tipo": "area",
-          "cor": "#c9a24a",
+          "cor": "#f0b429",
+          "opacidade": 0.32,
           "arquivo": "data/geologia.geojson",
+          "fonte": "Cartografia geológica",
           "descricao": "Unidades da Bacia do Parnaíba e coberturas cenozoicas."
         }
       ]
@@ -63,8 +77,10 @@
           "id": "classes-solo",
           "nome": "Classes de solo",
           "tipo": "area",
-          "cor": "#b5573a",
+          "cor": "#ff8a5c",
+          "opacidade": 0.32,
           "arquivo": "data/solos.geojson",
+          "fonte": "Mapa pedológico",
           "descricao": "Classes de solo predominantes no município."
         }
       ]
@@ -78,8 +94,10 @@
           "id": "uso-cobertura",
           "nome": "Cobertura e uso",
           "tipo": "area",
-          "cor": "#6b4f8a",
+          "cor": "#a78bfa",
+          "opacidade": 0.32,
           "arquivo": "data/uso.geojson",
+          "fonte": "MapBiomas",
           "descricao": "Classes de cobertura, dados MapBiomas."
         }
       ]
@@ -93,16 +111,18 @@
           "id": "afloramentos",
           "nome": "Afloramentos",
           "tipo": "ponto",
-          "cor": "#a23b3b",
+          "cor": "#ff5c7a",
           "arquivo": "data/afloramentos.geojson",
+          "fonte": "Levantamento de campo",
           "descricao": "Afloramentos rochosos visitados em campo."
         },
         {
           "id": "vocorocas",
           "nome": "Voçorocas",
           "tipo": "ponto",
-          "cor": "#d9822b",
+          "cor": "#ffb02e",
           "arquivo": "data/vocorocas.geojson",
+          "fonte": "Levantamento de campo",
           "descricao": "Feições erosivas lineares mapeadas."
         }
       ]
